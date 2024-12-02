@@ -122,7 +122,62 @@ def compute_gradient(forward_pass, inputs, params, sampler, method="ffd"):
         # step 2: perturbed loss
         perturbed_loss = forward_pass(inputs, dictionary_add(params, h))
         # step 3: gradient = (clean loss - perturbed loss) * h
-        gradient = dictionary_mult(h, (clean_loss - perturbed_loss))
+        gradient = dictionary_mult(h, (perturbed_loss - clean_loss))
+    elif method == "cfd":
+        # step 1: perturbed loss
+        perturbed_loss = forward_pass(inputs, dictionary_add(params, h))
+        # step 2: reverse perturbed loss
+        neg_perturbed_loss = forward_pass(
+            inputs,
+            dictionary_add(params, dictionary_mult(h, -1)),
+        )
+        # step 3: gradient = (clean loss - perturbed loss) * h
+        gradient = dictionary_mult(h, (perturbed_loss - neg_perturbed_loss))
+    else:
+        raise ValueError('Invalid option given. Choose between: {"ffd", "cfd"}')
+    return gradient
+
+def compute_gradient_vector(forward_pass, inputs, params, sampler, method="ffd"):
+    """
+    Computes the gradient according to weight perturbation with one of the
+    following:
+        - Forward Finite Difference (ffd)
+        - Central Finite Difference (cfd)
+
+    Parameters
+    ----------
+    forward_pass : Callable (inputs, params) -> loss
+        Forward pass function
+    inputs : Array
+        Input data
+    params : dict
+        Network weights and biases
+    sampler : Distribution
+        Sampling distribution for perturbation
+    method : str, optional
+        Method for approximating gradient. Options are: {"ffd", "cfd"}.
+        The default is "ffd".
+
+    Raises
+    ------
+    ValueError
+        If invalid method is given
+
+    Returns
+    -------
+    gradient : dict
+        Gradient estimation of the loss function wrt the weights as calculated
+        by the specified method of weight perturbation.
+
+    """
+    h = sample_perturbation(sampler, params)
+    if method == "ffd":
+        # step 1: clean loss
+        clean_loss = forward_pass(inputs, params)
+        # step 2: perturbed loss
+        perturbed_loss = forward_pass(inputs, dictionary_add(params, h))
+        # step 3: gradient = (clean loss - perturbed loss) * h
+        gradient = dictionary_mult(h, (perturbed_loss - clean_loss))
     elif method == "cfd":
         # step 1: perturbed loss
         perturbed_loss = forward_pass(inputs, dictionary_add(params, h))
@@ -180,7 +235,7 @@ def compute_snn_gradient(forward_pass, inputs, y, params, sampler, method="ffd")
         # step 2: perturbed loss
         perturbed_loss = forward_pass(inputs, y, h)
         # step 3: gradient = (clean loss - perturbed loss) * h
-        gradient = dictionary_mult(h, (clean_loss - perturbed_loss))
+        gradient = dictionary_mult(h, (perturbed_loss - clean_loss))
     elif method == "cfd":
         # step 1: perturbed loss
         perturbed_loss = forward_pass(inputs, y, h)
