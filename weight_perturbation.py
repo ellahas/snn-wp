@@ -137,6 +137,7 @@ def compute_gradient(forward_pass, inputs, params, sampler, method="ffd"):
         raise ValueError('Invalid option given. Choose between: {"ffd", "cfd"}')
     return gradient
 
+
 def compute_gradient_vector(forward_pass, inputs, params, sampler, method="ffd"):
     """
     Computes the gradient according to weight perturbation with one of the
